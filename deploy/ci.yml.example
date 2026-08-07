@@ -1,0 +1,43 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  client:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm install
+      - run: npm run build
+        env:
+          VITE_API_URL: http://localhost:8907
+
+  server:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m py_compile app.py db.py blocklist.py schemas.py
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: [client, server]
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t vidbite-server ./server
+      - run: docker build -t vidbite-client --build-arg VITE_API_URL=http://localhost:8907 ./client

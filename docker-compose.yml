@@ -1,0 +1,43 @@
+# One-command local/prod run: Postgres + Flask API + nginx-served React client.
+#   cp .env.example .env   # fill in the values
+#   docker compose up --build
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: vidbite
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vidbite}
+      POSTGRES_DB: vidbite
+    volumes:
+      - dbdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vidbite"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  server:
+    build: ./server
+    environment:
+      PORT: "8907"
+      DATABASE_URL: postgresql://vidbite:${POSTGRES_PASSWORD:-vidbite}@db:5432/vidbite
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY:?set JWT_SECRET_KEY in .env}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:?set GOOGLE_API_KEY in .env}
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8907:8907"
+
+  client:
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8907}
+    depends_on:
+      - server
+    ports:
+      - "3000:80"
+
+volumes:
+  dbdata:

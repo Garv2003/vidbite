@@ -1,0 +1,42 @@
+# Render Blueprint — deploy the whole stack from one file.
+# In Render: New → Blueprint → point at this repo. Set the secret env vars
+# (JWT_SECRET_KEY, GOOGLE_API_KEY) in the dashboard; DATABASE_URL wires automatically.
+databases:
+  - name: vidbite-db
+    databaseName: vidbite
+    plan: free
+
+services:
+  # Flask API (Docker)
+  - type: web
+    name: vidbite-api
+    runtime: docker
+    dockerfilePath: ./server/Dockerfile
+    dockerContext: ./server
+    plan: free
+    healthCheckPath: /swagger-ui
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: vidbite-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: GOOGLE_API_KEY
+        sync: false        # set in the dashboard
+      - key: PORT
+        value: "8907"
+
+  # React client (static site built by Vite)
+  - type: web
+    name: vidbite-client
+    runtime: static
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: ./client/dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false        # set to the deployed vidbite-api URL in the dashboard
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
