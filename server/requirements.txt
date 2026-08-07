@@ -13,3 +13,4 @@ flask_jwt_extended
 passlib
 gunicorn
 pytube
+psycopg2-binary

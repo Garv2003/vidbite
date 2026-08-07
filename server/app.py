@@ -18,7 +18,7 @@ def create_app(db_url=None):
     app.config["API_TITLE"] = "VidBite REST API"
     app.config["API_VERSION"] = "v1"
     app.config["OPENAPI_VERSION"] = "3.0.3"
-    app.config["JWT_SECRET_KEY"] = "jose"
+    app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY", "jose")
 
     CORS(app, resources={r"/*": {"origins": "*"}})
 
